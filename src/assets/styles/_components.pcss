@@ -1,0 +1,23 @@
+@tailwind components;
+
+.btn {
+  @apply p-2 border-2 border-green-500 bg-green-400 rounded font-semibold outline-none;
+}
+
+.btn:hover,
+.btn:focus {
+  @apply text-white;
+}
+
+.btn:active, .btn:focus {
+  @apply outline-none shadow-outline;
+}
+
+.btn:active {
+  @apply bg-green-600;
+}
+
+
+.btn[disabled] {
+  @apply cursor-not-allowed bg-gray-100 text-gray-400 border-gray-400;
+}
