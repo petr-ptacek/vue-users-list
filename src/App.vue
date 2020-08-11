@@ -1,27 +1,39 @@
 <template>
-	<div class="p-4 bg-white flex flex-col justify-center">
-		<div class="flex justify-center items-center">
-			<div class="p-3 flex flex-col ">
+	<div class="p-4 bg-white flex flex-col justify-center w-full h-full">
+		<div class="flex justify-center items-center w-full h-full">
+			<div class="p-1 flex flex-col w-1/2 h-full">
 				<h1 class="text-center mb-2 text-xl font-semibold">List of users</h1>
-				<TheTable v-show="!loading"
-				          :column-defs="columnDefs"
-				          :datasource="displayedUsers"
-				          @on-row-selected="onRowSelectedHandler"
-				>
-					<template #td="{ rowData, colData, colId, colDef }">
-						<img v-if="colId === 'avatar'"
-						     class="inline-block rounded-full h-auto w-12"
-						     :alt="`${rowData.first_name}
-				     ${rowData.last_name}`"
-						     :src="colData" />
-						<span v-else>{{ colData }}</span>
-					</template>
-				</TheTable>
-				<div v-show="loading"
-				     ref="table-preloader"
-				     style="min-width: 750px;min-height: 600px"
-				     class="flex justify-center items-center">
-					Fetching data ...
+				<div>
+					<TheTable v-show="!loading"
+					          class="w-full h-full"
+					          :column-defs="columnDefs"
+					          :datasource="displayedUsers"
+					          @row-select="onRowSelectHandler"
+					          @row-deselect="onRowDeselectHandler"
+					          @row-click="onRowClickHandler"
+					          @sort-model-change="onTableSortModelChange"
+					>
+						<template #td="{ rowData, colData, colId, colDef }">
+							<img v-if="colId === 'avatar'"
+							     class="inline-block rounded-full h-auto w-12"
+							     :alt="`${rowData.firstName} ${rowData.lastName}`"
+							     :src="colData"
+							     @error="imgFetchErrorHandler(rowData)"
+							/>
+							<span v-else-if="colId === 'active'"
+							      class="w-5 h-5 rounded-full block"
+							      :class="[ rowData.active ? 'bg-green-600' : 'bg-red-600' ]"
+							>
+						</span>
+							<span v-else>{{ colData }}</span>
+						</template>
+					</TheTable>
+					<div v-show="loading"
+					     ref="table-preloader"
+					     style="min-width: 930px; min-height: 600px;"
+					     class="flex justify-center items-center bg-gray-300 text-white font-semibold text-3xl">
+						Fetching data ...
+					</div>
 				</div>
 
 				<div class="flex mt-2 items-center justify-between">
@@ -51,100 +63,51 @@
 				</div>
 			</div>
 
-			<div class="p-3 max-w-4xl">
-				<UserDetail class="p-3 shadow-2xl" />
+			<!--USER DETAIL-->
+			<div class="p-1 w-1/2 h-full flex flex-col">
+				<h1 class="text-center mb-2 text-xl font-semibold">User Detail</h1>
+				<UserDetail
+						v-if="selectedUser"
+						:user="selectedUser"
+						class="p-3 shadow-2xl"
+				/>
+				<div v-else
+				     class="bg-gray-300 text-white font-semibold text-3xl flex justify-center items-center"
+				     style="min-height: 450px"
+				>
+					Select the user from the List of Users
+				</div>
 			</div>
+			<!--./USER DETAIL-->
 		</div>
 	</div>
 </template>
 
 <script>
-  import TheTable from '@/components/TheTable.vue';
+  import TheTable   from '@/components/TheTable.vue';
   import UserDetail from '@/components/UserDetail';
 
-  import { uuid } from '@/utils';
-  import { fetchUsers } from '@/api';
+  import { COLUMN_DEFS }   from './config';
+  import * as api          from '@/api';
+  import avatarBlankMale   from '@/assets/img/avatar-blank-male.jpg';
+  import avatarBlankFemale from '@/assets/img/avatar-blank-female.jpg';
 
   export default {
     name: 'App',
     data() {
       return {
-        columnDefs: [
-          {
-            headerName: 'Index',
-            field: '_index',
-            colId: '_index',
-            sortable: false,
-            visible: false
-          },
-          {
-            headerName: 'ID',
-            field: 'id',
-            colId: 'id',
-            sortable: false,
-            visible: false
-          },
-          {
-            headerName: 'First Name',
-            field: 'first_name',
-            colId: 'first_name',
-            sortable: true,
-            visible: true
-          },
-          {
-            headerName: 'Last Name',
-            field: 'last_name',
-            colId: 'last_name',
-            sortable: true,
-            visible: true
-          },
-          {
-            headerName: 'Age',
-            field: 'age',
-            colId: 'age',
-            sortable: true,
-            visible: true
-          },
-          {
-            headerName: 'Gender',
-            field: 'gender',
-            colId: 'gender',
-            sortable: true,
-            visible: true
-          },
-          {
-            headerName: 'Status',
-            field: 'status',
-            colId: 'status',
-            sortable: true,
-            visible: true
-          },
-          {
-            headerName: 'Email',
-            field: 'email',
-            colId: 'email',
-            sortable: true,
-            visible: true
-          },
-          {
-            headerName: 'Phone',
-            field: 'phone',
-            colId: 'phone',
-            sortable: true,
-            visible: false
-          },
-          {
-            headerName: 'Avatar',
-            field: '_links.avatar.href',
-            colId: 'avatar',
-            sortable: false,
-            visible: true
-          },
-        ],
+        selectedUser: null,
+        columnDefs: COLUMN_DEFS,
+        sortModel: {},
         users: [],
         loading: false,
         meta: {
-          totalCount: 0,
+          original: {
+            currentPage: 1,
+            pagesCount: 0,
+            perPage: 20
+          },
+          usersCount: 0,
           pageCount: 0,
           currentPage: 1,
           perPage: 10
@@ -156,34 +119,75 @@
       displayedUsers() {
         const { currentPage, perPage } = this.meta;
 
-        return this.users.slice(
-            (currentPage - 1) * perPage,
-            currentPage * perPage
-        );
+        return this.sortedUsers
+                   .slice(
+                     (currentPage - 1) * perPage,
+                     currentPage * perPage
+                   );
+      },
+      sortedUsers() {
+        const { sortModel } = this;
+        if ( !Object.entries(sortModel).length ) return this.users;
+        const colId = Object.keys(sortModel)[0];
+        const sort = Object.values(sortModel)[0];
+        let compareFn;
+
+        let dir = sort === 'asc' ? 1 : -1;
+
+        switch ( colId ) {
+          case 'active':
+            compareFn = (a, b) => (a.active - b.active) * dir;
+            break;
+          case 'age':
+            compareFn = (a, b) => (a.age - b.age) * dir;
+            break;
+          case 'gender':
+            compareFn = (a, b) => ((a.gender === 'female' ? 1 : 0) - (b.gender === 'female' ? 1 : 0)) * dir;
+            break;
+          case 'lastName':
+            compareFn = (a, b) => a.lastName.localeCompare(b.lastName, undefined, { sensitivity: 'base' }) * dir;
+            break;
+          default:
+            compareFn = (a, b) => 0;
+            break;
+        }
+
+        return this.users
+                   .slice(0)
+                   .sort(compareFn);
       },
       disabledPreviousBtn() {
-        return (this.meta.currentPage - 1) < 1;
+        return (this.meta.currentPage - 1) < 1 || this.loading;
       },
       disabledNextBtn() {
-        return (this.meta.currentPage + 1) > this.meta.pageCount;
+        return (this.meta.currentPage + 1) > this.meta.pageCount || this.loading;
       }
     },
 
     watch: {
       'meta.currentPage'(value) {
         if ( value * this.meta.perPage > this.users.length ) {
-          this.fetchUsers(value - 1);
+          this.fetchUsers(this.meta.original.currentPage + 1);
         }
       }
     },
 
     created() {
-      this.fetchUsers();
+      this.fetchUsers(1);
     },
 
     methods: {
-      onRowSelectedHandler({ rowData }) {
-        debugger
+      onTableSortModelChange(sortModel) {
+        this.sortModel = sortModel;
+        this.meta.currentPage = 1;
+      },
+      onRowDeselectHandler({ rowData }) {
+        this.selectedUser = null;
+      },
+      onRowSelectHandler({ rowData }) {
+        this.selectedUser = this.users[rowData.$index];
+      },
+      onRowClickHandler({ rowData }) {
       },
 
       previousPage() {
@@ -194,31 +198,45 @@
         this.meta.currentPage++;
       },
 
+      imgFetchErrorHandler(rowData) {
+        const { $index, gender } = rowData;
+
+        this.$set(
+          this.users[$index],
+          'avatar',
+          gender === 'male' ? avatarBlankMale : avatarBlankFemale
+        );
+      },
+
       async fetchUsers(page = this.meta.currentPage) {
         this.loading = true;
 
         let response;
         try {
-          response = await fetchUsers(page);
+          response = await api.fetchUsers(page);
         } catch ( e ) {
           alert(e.toString());
+          return;
         }
 
         this.users =
-            [
-              ...this.users,
-              ...response.result.map((user, index) => ({
-                ...user,
-                age: new Date().getFullYear() - new Date(user.dob).getFullYear(),
-                $uuid: uuid(),
-                $index: this.users.length + index
-              }))
-            ];
+          [
+            ...this.users,
+            ...response.results.map((user, index) => ({
+              ...user,
+              age: new Date().getFullYear() - new Date(user.dob).getFullYear(),
+              $index: this.users.length + index
+            }))
+          ];
 
-        const { perPage, currentPage, totalCount, pageCount } = response._meta;
+        const { usersCount, pagesCount, resultsCount, usersPerPage, currentPage } = response.meta;
 
-        this.meta.totalCount = totalCount;
-        this.meta.pageCount = Math.ceil(totalCount / this.meta.perPage);
+        this.meta.original.perPage = usersPerPage;
+        this.meta.original.currentPage = currentPage;
+        this.meta.original.pagesCount = pagesCount;
+
+        this.meta.usersCount = usersCount;
+        this.meta.pageCount = Math.ceil(usersCount / this.meta.perPage);
 
         this.loading = false;
       }
@@ -229,3 +247,9 @@
     }
   };
 </script>
+
+<style lang="postcss">
+	body {
+		@apply w-screen h-screen;
+	}
+</style>
