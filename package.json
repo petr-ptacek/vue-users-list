@@ -2,6 +2,7 @@
   "name": "@petr-ptacek/vue-users-list",
   "version": "0.1.0",
   "private": true,
+  "homepage": "https://petr-ptacek.github.io/vue-users-list/",
   "scripts": {
     "server": "node ./server/app.js",
     "dev": "concurrently \"vue-cli-service serve --mode development --port 8080\" \"npm run server -- --port 3000\"",
