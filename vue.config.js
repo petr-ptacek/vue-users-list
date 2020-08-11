@@ -1,3 +1,3 @@
 module.exports = {
-  publicPath: '/vue-users-list/'
+  publicPath: process.env.NODE_ENV === 'production' ? '/vue-users-list/' : undefined
 };

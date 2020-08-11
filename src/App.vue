@@ -41,6 +41,7 @@
 							style="min-width: 105px;"
 							:disabled="disabledPreviousBtn"
 							class="btn flex justify-center items-center"
+							:class="{ 'disabled': disabledPreviousBtn }"
 							@click="previousPage"
 					>
 						<svg class="w-4 h-4 mr-1 stroke-current" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -53,6 +54,7 @@
 							style="min-width: 105px;"
 							:disabled="disabledNextBtn"
 							class="btn flex justify-center items-center"
+							:class="{ 'disabled': disabledNextBtn }"
 							@click="nextPage"
 					>
 						<span>Next</span>
