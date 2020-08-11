@@ -5,7 +5,7 @@
   "scripts": {
     "server": "node ./server/app.js",
     "dev": "concurrently \"vue-cli-service serve --mode development --port 8080\" \"npm run server -- --port 3000\"",
-    "build": "vue-cli-service build --mode production"
+    "build": "vue-cli-service build --mode production --dest docs"
   },
   "dependencies": {
     "core-js": "^3.6.5",
