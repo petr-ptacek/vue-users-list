@@ -1,10 +1,11 @@
 {
-  "name": "assignment-vue-users",
+  "name": "@petr-ptacek/vue-users-list",
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "serve": "vue-cli-service serve",
-    "build": "vue-cli-service build"
+    "server": "node ./server/app.js",
+    "dev": "concurrently \"vue-cli-service serve --mode development --port 8080\" \"npm run server -- --port 3000\"",
+    "build": "vue-cli-service build --mode production"
   },
   "dependencies": {
     "core-js": "^3.6.5",
@@ -17,6 +18,7 @@
     "@fullhuman/vue-cli-plugin-purgecss": "^2.2.0",
     "@vue/cli-plugin-babel": "~4.4.0",
     "@vue/cli-service": "~4.4.0",
+    "concurrently": "^5.3.0",
     "vue-template-compiler": "^2.6.11"
   }
 }

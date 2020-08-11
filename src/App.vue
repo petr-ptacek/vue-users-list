@@ -87,6 +87,8 @@
   import TheTable   from '@/components/TheTable.vue';
   import UserDetail from '@/components/UserDetail';
 
+  const IS_PROD_MODE = process.env.NODE_ENV === 'production';
+
   import { COLUMN_DEFS }   from './config';
   import * as api          from '@/api';
   import avatarBlankMale   from '@/assets/img/avatar-blank-male.jpg';
@@ -213,7 +215,7 @@
 
         let response;
         try {
-          response = await api.fetchUsers(page);
+          response = await (IS_PROD_MODE ? api.fakeFetch : api.fetchUsers)(page);
         } catch ( e ) {
           alert(e.toString());
           return;
